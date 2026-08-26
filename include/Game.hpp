@@ -7,6 +7,7 @@
 #include "Core/Camera.hpp"
 #include "Core/UI.hpp"
 #include "Graphics/Renderer.hpp"
+#include "Graphics/Model.hpp"
 
 enum GameState {
 	GAME_ACTIVE,

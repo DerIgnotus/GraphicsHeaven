@@ -122,6 +122,7 @@ int Game::ExtInit()
 int Game::Init()
 {
 	ui = UI();
+	Model test_model("assets/models/test_crystal.glb");
 
 	return 0;
 }
