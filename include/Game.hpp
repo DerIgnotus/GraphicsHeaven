@@ -70,11 +70,4 @@ private:
 	Shader modelShader;
 
 	std::vector<Model> models;
-
-
-
-	//Temp
-	unsigned int cubeVAO = 0;
-	unsigned int cubeVBO = 0;
-	unsigned int cubeEBO = 0;
 };

@@ -3,6 +3,46 @@
 #include "cgltf.h"
 #include <iostream>
 #include <cassert>
+#include <cstring>
+#include <memory>
+#include <utility>
+
+std::shared_ptr<Texture> LoadTexture(cgltf_image* image)
+{
+	if (!image)
+		return nullptr;
+
+	if (!image->buffer_view)
+	{
+		std::cerr << "[ERROR] Texture image has no buffer view\n";
+		return nullptr;
+	}
+
+	cgltf_buffer_view* view = image->buffer_view;
+
+	const unsigned char* data =
+		static_cast<const unsigned char*>(view->buffer->data)
+		+ view->offset;
+
+	std::size_t size = view->size;
+
+	return std::make_shared<Texture>(data, size);
+}
+
+Model::Model(Model&& other) noexcept
+	: meshes(std::move(other.meshes))
+{
+}
+
+Model& Model::operator=(Model&& other) noexcept
+{
+	if (this != &other)
+	{
+		meshes = std::move(other.meshes);
+	}
+
+	return *this;
+}
 
 Model::Model(const char* file)
 {
@@ -36,9 +76,78 @@ Model::Model(const char* file)
 		{
 			cgltf_primitive& primitive = mesh.primitives[j];
 
+			std::cout << "\nPrimitive: " << j << '\n';
+
+			if (primitive.material)
+			{
+				std::cout << "  Material: "
+					<< (primitive.material->name
+						? primitive.material->name
+						: "Unnamed")
+					<< '\n';
+
+				auto& baseColor =
+					primitive.material->pbr_metallic_roughness.base_color_texture;
+
+				if (baseColor.texture)
+				{
+					std::cout << "  Texture: "
+						<< (baseColor.texture->name
+							? baseColor.texture->name
+							: "Unnamed")
+						<< '\n';
+
+					if (baseColor.texture->image)
+					{
+						std::cout << "  Image: "
+							<< (baseColor.texture->image->name
+								? baseColor.texture->image->name
+								: "Unnamed")
+							<< '\n';
+					}
+				}
+				else
+				{
+					std::cout << "  No base color texture\n";
+				}
+			}
+			else
+			{
+				std::cout << "  No material\n";
+			}
+
 			if (primitive.type != cgltf_primitive_type_triangles) {
 				std::cout << "Primitive is not a triangle!";
 				continue;
+			}
+
+			Material material;
+
+			if (primitive.material)
+			{
+				cgltf_material* gltfMaterial = primitive.material;
+
+				auto& pbr = gltfMaterial->pbr_metallic_roughness;
+
+				// Base color
+				material.baseColor = glm::vec4(
+					pbr.base_color_factor[0],
+					pbr.base_color_factor[1],
+					pbr.base_color_factor[2],
+					pbr.base_color_factor[3]
+				);
+
+				// Base color texture
+				if (pbr.base_color_texture.texture)
+				{
+					cgltf_image* image =
+						pbr.base_color_texture.texture->image;
+
+					if (image)
+					{
+						material.baseColorTexture = LoadTexture(image);
+					}
+				}
 			}
 
 			cgltf_accessor* positionAccessor = nullptr;
@@ -119,6 +228,8 @@ Model::Model(const char* file)
 					);
 				}
 
+
+
 				vertices.push_back(vertex);
 			}
 
@@ -143,7 +254,7 @@ Model::Model(const char* file)
 				}
 			}
 
-			meshes.emplace_back(vertices, indices);
+			meshes.emplace_back(vertices, indices, material);
 		}
 	}
 
@@ -156,8 +267,25 @@ Model::~Model()
 
 void Model::Draw(Shader& shader) const
 {
+	//int count = 0;
+
 	for (const Mesh& mesh : meshes)
 	{
+		//count++;
+		//glm::vec4 color;
+
+		//if (count == 1) {
+		//	color = glm::vec4(1, 0, 0, 1);
+		//}
+		//else {
+		//	color = glm::vec4(0, 1, 0, 1);
+		//	continue;
+		//}
+
+		//std::cout << count << "    " << color.r << std::endl;
+
+		//shader.SetVec4("colorUni", color);
+
 		mesh.Draw(shader);
 	}
 }

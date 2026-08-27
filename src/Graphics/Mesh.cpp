@@ -1,9 +1,54 @@
 #include "Graphics/Mesh.hpp"
 
-Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices) :
-	vertices(vertices), indices(indices)
+#include <utility>
+
+Mesh::Mesh(
+	const std::vector<Vertex>& vertices,
+	const std::vector<unsigned int>& indices,
+	const Material& material
+) :
+	vertices(vertices),
+	indices(indices),
+	material(material)
 {
 	setupMesh();
+}
+
+Mesh::Mesh(Mesh&& other) noexcept
+	: vertices(std::move(other.vertices)),
+	indices(std::move(other.indices)),
+	material(std::move(other.material)),
+	VAO(other.VAO),
+	VBO(other.VBO),
+	EBO(other.EBO)
+{
+	other.VAO = 0;
+	other.VBO = 0;
+	other.EBO = 0;
+}
+
+Mesh& Mesh::operator=(Mesh&& other) noexcept
+{
+	if (this != &other)
+	{
+		glDeleteVertexArrays(1, &VAO);
+		glDeleteBuffers(1, &VBO);
+		glDeleteBuffers(1, &EBO);
+
+		vertices = std::move(other.vertices);
+		indices = std::move(other.indices);
+		material = std::move(other.material);
+
+		VAO = other.VAO;
+		VBO = other.VBO;
+		EBO = other.EBO;
+
+		other.VAO = 0;
+		other.VBO = 0;
+		other.EBO = 0;
+	}
+
+	return *this;
 }
 
 Mesh::~Mesh()
@@ -13,14 +58,56 @@ Mesh::~Mesh()
 	glDeleteBuffers(1, &EBO);
 }
 
+
 void Mesh::Draw(Shader& shader) const
 {
+	shader.SetVec4("baseColor", material.baseColor);
+
+	if (material.baseColorTexture)
+	{
+		material.baseColorTexture->Bind(0);
+
+		shader.SetInt("textureSampler", 0);
+		shader.SetBool("hasTexture", true);
+	}
+	else
+	{
+		shader.SetBool("hasTexture", false);
+	}
+
 	glBindVertexArray(VAO);
 
-	glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, nullptr);
+	glDrawElements(
+		GL_TRIANGLES,
+		static_cast<GLsizei>(indices.size()),
+		GL_UNSIGNED_INT,
+		nullptr
+	);
 
 	glBindVertexArray(0);
 }
+
+
+/*
+void Mesh::Draw(Shader& shader) const
+{
+	std::cout << "Drawing mesh: "
+		<< vertices.size() << " vertices, "
+		<< indices.size() << " indices\n";
+
+	glBindVertexArray(VAO);
+
+	glDrawElements(
+		GL_TRIANGLES,
+		static_cast<GLsizei>(indices.size()),
+		GL_UNSIGNED_INT,
+		nullptr
+	);
+
+	glBindVertexArray(0);
+}
+*/
+
 
 void Mesh::setupMesh()
 {
