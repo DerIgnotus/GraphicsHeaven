@@ -2,6 +2,7 @@
 
 Shader::Shader()
 {
+	ID = 1;
 }
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath)
@@ -83,6 +84,10 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
 	glDeleteShader(fragment);
 	if (geometryPath != nullptr)
 		glDeleteShader(geometry);
+
+	std::cout << "VertexShader: " << vShaderCode << std::endl;
+	std::cout << "FragmentShader: " << fShaderCode << std::endl;
+
 
 	std::cout << "Shader Successfully Created:\nVertex Shader: " << vertexPath << "\nFragment Shader: " << fragmentPath << std::endl;
 }

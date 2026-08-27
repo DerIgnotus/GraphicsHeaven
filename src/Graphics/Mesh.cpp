@@ -24,6 +24,9 @@ void Mesh::Draw(Shader& shader) const
 
 void Mesh::setupMesh()
 {
+	std::cout << indices.size() << std::endl;
+	std::cout << vertices.size() << std::endl;
+
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);

@@ -1,4 +1,5 @@
 #include "Core/Camera.hpp"
+#include <iostream>
 
 
 Camera::Camera(glm::vec3 camPosition, glm::vec3 camUp, float camYaw, float camPitch) :
@@ -22,14 +23,24 @@ void Camera::Update(float deltaTime)
 void Camera::ProcessKeyboard(Camera_Movement direction, float deltaTime)
 {
 	float velocity = movementSpeed * deltaTime;
+
 	if (direction == FORWARD)
 		position += front * velocity;
+
 	if (direction == BACKWARD)
 		position -= front * velocity;
+
 	if (direction == LEFT)
 		position -= right * velocity;
+
 	if (direction == RIGHT)
 		position += right * velocity;
+
+	if (direction == UP)
+		position += worldUp * velocity;
+
+	if (direction == DOWN)
+		position -= worldUp * velocity;
 }
 
 void Camera::ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch)

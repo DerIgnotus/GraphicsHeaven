@@ -60,6 +60,10 @@ int Game::ExtInit()
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	cursorLocked = true;
+
+
 	std::cout << "[ OK ] Window created\n";
 	std::cout << "       Resolution: " << windowWidth << "x" << windowHeight << '\n';
 
@@ -71,6 +75,8 @@ int Game::ExtInit()
 		glfwTerminate();
 		return -1;
 	}
+
+	glEnable(GL_DEPTH_TEST);
 
 	std::cout << "[ OK ] GLAD initialized\n";
 
@@ -131,8 +137,82 @@ int Game::Init()
 	camera = Camera(glm::vec3(0.0f, 0.0f, 3.0f));
 	modelShader = Shader("shaders/model.vert", "shaders/model.frag");
 
-	Model test_model("assets/models/test_crystal.glb");
+	Model test_model("assets/models/cube.glb");
 	models.push_back(test_model);
+
+	float vertices[] = {
+		// positions
+		-0.5f, -0.5f, -0.5f,
+		 0.5f, -0.5f, -0.5f,
+		 0.5f,  0.5f, -0.5f,
+		-0.5f,  0.5f, -0.5f,
+
+		-0.5f, -0.5f,  0.5f,
+		 0.5f, -0.5f,  0.5f,
+		 0.5f,  0.5f,  0.5f,
+		-0.5f,  0.5f,  0.5f
+	};
+
+	unsigned int indices[] = {
+		// front
+		4, 5, 6,
+		6, 7, 4,
+
+		// back
+		0, 2, 1,
+		2, 0, 3,
+
+		// left
+		0, 4, 7,
+		7, 3, 0,
+
+		// right
+		1, 2, 6,
+		6, 5, 1,
+
+		// bottom
+		0, 1, 5,
+		5, 4, 0,
+
+		// top
+		3, 7, 6,
+		6, 2, 3
+	};
+
+	glGenVertexArrays(1, &cubeVAO);
+	glGenBuffers(1, &cubeVBO);
+	glGenBuffers(1, &cubeEBO);
+
+	glBindVertexArray(cubeVAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+	glBufferData(
+		GL_ARRAY_BUFFER,
+		sizeof(vertices),
+		vertices,
+		GL_STATIC_DRAW
+	);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeEBO);
+	glBufferData(
+		GL_ELEMENT_ARRAY_BUFFER,
+		sizeof(indices),
+		indices,
+		GL_STATIC_DRAW
+	);
+
+	glVertexAttribPointer(
+		0,
+		3,
+		GL_FLOAT,
+		GL_FALSE,
+		3 * sizeof(float),
+		nullptr
+	);
+
+	glEnableVertexAttribArray(0);
+
+	glBindVertexArray(0);
 
 	return 0;
 }
@@ -157,7 +237,7 @@ void Game::Run()
 	processInput();
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	update();
 
@@ -186,11 +266,20 @@ void Game::update()
 	modelShader.SetMat4("view", view);
 	modelShader.SetMat4("projection", projection);
 
-	modelShader.SetVec3("cameraPos", camera.GetPosition());
+	//for (const Model& model : models) {
+	//	model.Draw(modelShader);
+	//}
 
-	for (const Model& model : models) {
-		model.Draw(modelShader);
-	}
+	glBindVertexArray(cubeVAO);
+
+	glDrawElements(
+		GL_TRIANGLES,
+		36,
+		GL_UNSIGNED_INT,
+		nullptr
+	);
+
+	glBindVertexArray(0);
 
 	ui.Update(fps, windowWidth, windowHeight);
 	ui.Render();
@@ -215,6 +304,32 @@ void Game::processInput()
 
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera.ProcessKeyboard(RIGHT, deltaTime);
+
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		camera.ProcessKeyboard(UP, deltaTime);
+
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+		camera.ProcessKeyboard(DOWN, deltaTime);
+
+	bool tabPressed = glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS;
+
+	if (tabPressed && !tabWasPressed)
+	{
+		setCursorLocked(!cursorLocked);
+	}
+
+	tabWasPressed = tabPressed;
+}
+
+void Game::setCursorLocked(bool locked)
+{
+	cursorLocked = locked;
+
+	glfwSetInputMode(
+		window,
+		GLFW_CURSOR,
+		locked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL
+	);
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -251,6 +366,9 @@ void Game::OnFramebufferResize(int width, int height)
 
 void Game::OnMouseMove(double xposIn, double yposIn)
 {
+	if (!cursorLocked)
+		return;
+
 	static bool firstMouse = true;
 	static float lastX = 0.0f;
 	static float lastY = 0.0f;

@@ -43,6 +43,7 @@ public:
 private:
 	void update();
 	void processInput();
+	void setCursorLocked(bool locked);
 
 	unsigned int windowWidth, windowHeight;
 	const char* gameName;
@@ -52,6 +53,9 @@ private:
 	double fps = 0.0f;
 	double fpsTimer = 0.0f;
 	int frameCount = 0;
+
+	bool cursorLocked = true;
+	bool tabWasPressed = false;
 
 	bool vsync;
 
@@ -66,4 +70,11 @@ private:
 	Shader modelShader;
 
 	std::vector<Model> models;
+
+
+
+	//Temp
+	unsigned int cubeVAO = 0;
+	unsigned int cubeVBO = 0;
+	unsigned int cubeEBO = 0;
 };
