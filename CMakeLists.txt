@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+﻿cmake_minimum_required(VERSION 3.5)
 
 project(GraphicsHeaven
     VERSION 1.0
@@ -140,6 +140,12 @@ if (WIN32)
         WIN32_LEAN_AND_MEAN
     )
 endif()
+
+
+# Visual Studio Config
+set_target_properties(GraphicsHeaven PROPERTIES
+    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:GraphicsHeaven>"
+)
 
 
 # Runtime assets

@@ -1,6 +1,12 @@
 #pragma once
+
+#include "Shader.hpp"
+#include "Mesh.hpp"
+
 #include <cstring>
 #include <cstdio>
+#include <vector>
+#include <string>
 
 class Model {
 public:
@@ -9,6 +15,8 @@ public:
 
 	//int LoadModel(const char* file);
 
-private:
+	void Draw(Shader& shader) const;
 
+private:
+	std::vector<Mesh> meshes;
 };

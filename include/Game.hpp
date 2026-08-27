@@ -3,11 +3,14 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <vector>
 
 #include "Core/Camera.hpp"
 #include "Core/UI.hpp"
 #include "Graphics/Renderer.hpp"
 #include "Graphics/Model.hpp"
+#include "Graphics/Shader.hpp"
+#include "Graphics/Mesh.hpp"
 
 enum GameState {
 	GAME_ACTIVE,
@@ -27,6 +30,9 @@ public:
 	void Run();
 
 	void OnFramebufferResize(int width, int height);
+	void OnMouseMove(double xpos, double ypos);
+	void OnMouseScroll(double xoffset, double yoffset);
+
 
 	const Camera& GetCamera() const { return camera; }
 	const GameState& GetGameState() const { return gameState; }
@@ -56,4 +62,8 @@ private:
 	UI ui;
 
 	GLFWwindow* window = nullptr;
+
+	Shader modelShader;
+
+	std::vector<Model> models;
 };

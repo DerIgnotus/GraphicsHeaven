@@ -1,10 +1,14 @@
 #include "Game.hpp"
+#include <glm/gtc/type_ptr.hpp>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 Game::Game(unsigned int width, unsigned int height, const char* name, bool vsyncMode) :
 	windowWidth(width), windowHeight(height), gameState(GAME_ACTIVE), gameName(name), vsync(vsyncMode)
@@ -53,6 +57,8 @@ int Game::ExtInit()
 
 	glfwSetWindowUserPointer(window, this);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetScrollCallback(window, scroll_callback);
 
 	std::cout << "[ OK ] Window created\n";
 	std::cout << "       Resolution: " << windowWidth << "x" << windowHeight << '\n';
@@ -122,7 +128,11 @@ int Game::ExtInit()
 int Game::Init()
 {
 	ui = UI();
+	camera = Camera(glm::vec3(0.0f, 0.0f, 3.0f));
+	modelShader = Shader("shaders/model.vert", "shaders/model.frag");
+
 	Model test_model("assets/models/test_crystal.glb");
+	models.push_back(test_model);
 
 	return 0;
 }
@@ -158,16 +168,77 @@ void Game::Run()
 
 void Game::update()
 {
+	modelShader.Use();
+
+	glm::mat4 model = glm::mat4(1.0f);
+	glm::mat4 view = camera.GetViewMatrix();
+
+	glm::mat4 projection = glm::perspective(
+		glm::radians(camera.GetZoom()),
+		(float)windowWidth / (float)windowHeight,
+		0.1f,
+		100.0f
+	);
+
+	modelShader.Use();
+
+	modelShader.SetMat4("model", model);
+	modelShader.SetMat4("view", view);
+	modelShader.SetMat4("projection", projection);
+
+	modelShader.SetVec3("cameraPos", camera.GetPosition());
+
+	for (const Model& model : models) {
+		model.Draw(modelShader);
+	}
+
 	ui.Update(fps, windowWidth, windowHeight);
 	ui.Render();
 }
 
 void Game::processInput()
 {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+	{
 		glfwSetWindowShouldClose(window, true);
 		gameState = GAME_END;
 	}
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		camera.ProcessKeyboard(FORWARD, deltaTime);
+
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		camera.ProcessKeyboard(BACKWARD, deltaTime);
+
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		camera.ProcessKeyboard(LEFT, deltaTime);
+
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		camera.ProcessKeyboard(RIGHT, deltaTime);
+}
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+	Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
+
+	if (game)
+		game->OnFramebufferResize(width, height);
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
+
+	if (game)
+		game->OnMouseMove(xpos, ypos);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
+
+	if (game)
+		game->OnMouseScroll(xoffset, yoffset);
 }
 
 void Game::OnFramebufferResize(int width, int height)
@@ -178,10 +249,32 @@ void Game::OnFramebufferResize(int width, int height)
 	glViewport(0, 0, width, height);
 }
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+void Game::OnMouseMove(double xposIn, double yposIn)
 {
-	Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
+	static bool firstMouse = true;
+	static float lastX = 0.0f;
+	static float lastY = 0.0f;
 
-	if (game)
-		game->OnFramebufferResize(width, height);
+	float xpos = static_cast<float>(xposIn);
+	float ypos = static_cast<float>(yposIn);
+
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos;
+
+	lastX = xpos;
+	lastY = ypos;
+
+	camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void Game::OnMouseScroll(double xoffset, double yoffset)
+{
+	camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
