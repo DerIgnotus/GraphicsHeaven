@@ -59,21 +59,51 @@ Mesh::~Mesh()
 }
 
 
-void Mesh::Draw(Shader& shader) const
+void Mesh::Draw(Shader& shader, unsigned int skyBox) const
 {
 	shader.SetVec4("baseColor", material.baseColor);
+	shader.SetFloat("metallic", material.metallic);
+	shader.SetFloat("roughness", material.roughness);
+	shader.SetVec3("emissive", material.emissive);
+
+	shader.SetBool("hasBaseColorTexture",
+		material.baseColorTexture != nullptr);
+
+	shader.SetBool("hasMetallicRoughnessTexture",
+		material.metallicRoughnessTexture != nullptr);
+
+	shader.SetBool("hasNormalTexture",
+		material.normalTexture != nullptr);
+
+	shader.SetBool("hasOcclusionTexture",
+		material.occlusionTexture != nullptr);
+
+	shader.SetBool("hasEmissiveTexture",
+		material.emissiveTexture != nullptr);
+
 
 	if (material.baseColorTexture)
-	{
 		material.baseColorTexture->Bind(0);
 
-		shader.SetInt("textureSampler", 0);
-		shader.SetBool("hasTexture", true);
-	}
-	else
-	{
-		shader.SetBool("hasTexture", false);
-	}
+	if (material.metallicRoughnessTexture)
+		material.metallicRoughnessTexture->Bind(1);
+
+	if (material.normalTexture)
+		material.normalTexture->Bind(2);
+
+	if (material.occlusionTexture)
+		material.occlusionTexture->Bind(3);
+
+	if (material.emissiveTexture)
+		material.emissiveTexture->Bind(4);
+
+
+	shader.SetInt("baseColorTexture", 0);
+	shader.SetInt("metallicRoughnessTexture", 1);
+	shader.SetInt("normalTexture", 2);
+	shader.SetInt("occlusionTexture", 3);
+	shader.SetInt("emissiveTexture", 4);
+
 
 	glBindVertexArray(VAO);
 

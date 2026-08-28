@@ -8,6 +8,8 @@
 #include <cstdio>
 #include <vector>
 #include <string>
+#include <memory>
+#include <cgltf.h>
 
 class Model {
 public:
@@ -20,8 +22,15 @@ public:
 	Model(Model&& other) noexcept;
 	Model& operator=(Model&& other) noexcept;
 
-	void Draw(Shader& shader) const;
+	void Draw(Shader& shader, unsigned int skyboxTexture) const;
 
 private:
+	std::shared_ptr<Texture> LoadTexture(
+		cgltf_image* image,
+		TextureType type
+	);
+
+	std::string modelDirectory;
+
 	std::vector<Mesh> meshes;
 };

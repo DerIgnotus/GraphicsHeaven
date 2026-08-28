@@ -1,32 +1,51 @@
 #include "Graphics/Model.hpp"
 
-#include "cgltf.h"
 #include <iostream>
 #include <cassert>
 #include <cstring>
-#include <memory>
 #include <utility>
 
-std::shared_ptr<Texture> LoadTexture(cgltf_image* image)
+std::shared_ptr<Texture> Model::LoadTexture(
+	cgltf_image* image,
+	TextureType type
+)
 {
 	if (!image)
 		return nullptr;
 
-	if (!image->buffer_view)
+	// External texture
+	if (image->uri)
 	{
-		std::cerr << "[ERROR] Texture image has no buffer view\n";
-		return nullptr;
+		std::string path = modelDirectory + image->uri;
+
+		return std::make_shared<Texture>(
+			path.c_str(),
+			type
+		);
 	}
 
-	cgltf_buffer_view* view = image->buffer_view;
+	// Embedded texture in GLB
+	if (image->buffer_view)
+	{
+		cgltf_buffer_view* view = image->buffer_view;
 
-	const unsigned char* data =
-		static_cast<const unsigned char*>(view->buffer->data)
-		+ view->offset;
+		const unsigned char* data =
+			static_cast<const unsigned char*>(
+				view->buffer->data
+				) + view->offset;
 
-	std::size_t size = view->size;
+		return std::make_shared<Texture>(
+			data,
+			view->size,
+			type
+		);
+	}
 
-	return std::make_shared<Texture>(data, size);
+	std::cerr << "Texture has no data: "
+		<< (image->name ? image->name : "Unnamed")
+		<< '\n';
+
+	return nullptr;
 }
 
 Model::Model(Model&& other) noexcept
@@ -47,6 +66,16 @@ Model& Model::operator=(Model&& other) noexcept
 Model::Model(const char* file)
 {
 	std::printf("file path: %s\n", file);
+
+	std::string filePath(file);
+
+	size_t slash = filePath.find_last_of("/\\");
+
+	if (slash != std::string::npos)
+		modelDirectory = filePath.substr(0, slash + 1);
+	else
+		modelDirectory = "";
+
 	cgltf_options options;
 	std::memset(&options, 0, sizeof(cgltf_options));
 	cgltf_data* data = NULL;
@@ -78,44 +107,6 @@ Model::Model(const char* file)
 
 			std::cout << "\nPrimitive: " << j << '\n';
 
-			if (primitive.material)
-			{
-				std::cout << "  Material: "
-					<< (primitive.material->name
-						? primitive.material->name
-						: "Unnamed")
-					<< '\n';
-
-				auto& baseColor =
-					primitive.material->pbr_metallic_roughness.base_color_texture;
-
-				if (baseColor.texture)
-				{
-					std::cout << "  Texture: "
-						<< (baseColor.texture->name
-							? baseColor.texture->name
-							: "Unnamed")
-						<< '\n';
-
-					if (baseColor.texture->image)
-					{
-						std::cout << "  Image: "
-							<< (baseColor.texture->image->name
-								? baseColor.texture->image->name
-								: "Unnamed")
-							<< '\n';
-					}
-				}
-				else
-				{
-					std::cout << "  No base color texture\n";
-				}
-			}
-			else
-			{
-				std::cout << "  No material\n";
-			}
-
 			if (primitive.type != cgltf_primitive_type_triangles) {
 				std::cout << "Primitive is not a triangle!";
 				continue;
@@ -129,6 +120,41 @@ Model::Model(const char* file)
 
 				auto& pbr = gltfMaterial->pbr_metallic_roughness;
 
+				std::cout << "\n============================\n";
+				std::cout << "Material: "
+					<< (gltfMaterial->name ? gltfMaterial->name : "Unnamed")
+					<< '\n';
+
+				std::cout << "Base color texture: "
+					<< (pbr.base_color_texture.texture ? "YES" : "NO")
+					<< '\n';
+
+				std::cout << "Metal/Rough texture: "
+					<< (pbr.metallic_roughness_texture.texture ? "YES" : "NO")
+					<< '\n';
+
+				std::cout << "Normal texture: "
+					<< (gltfMaterial->normal_texture.texture ? "YES" : "NO")
+					<< '\n';
+
+				std::cout << "AO texture: "
+					<< (gltfMaterial->occlusion_texture.texture ? "YES" : "NO")
+					<< '\n';
+
+				std::cout << "Emissive texture: "
+					<< (gltfMaterial->emissive_texture.texture ? "YES" : "NO")
+					<< '\n';
+
+				std::cout << "Metallic factor: "
+					<< pbr.metallic_factor
+					<< '\n';
+
+				std::cout << "Roughness factor: "
+					<< pbr.roughness_factor
+					<< '\n';
+
+				std::cout << "============================\n";
+
 				// Base color
 				material.baseColor = glm::vec4(
 					pbr.base_color_factor[0],
@@ -137,17 +163,61 @@ Model::Model(const char* file)
 					pbr.base_color_factor[3]
 				);
 
+				// Metallic / roughness factors
+				material.metallic = pbr.metallic_factor;
+				material.roughness = pbr.roughness_factor;
+
 				// Base color texture
 				if (pbr.base_color_texture.texture)
 				{
-					cgltf_image* image =
-						pbr.base_color_texture.texture->image;
+					cgltf_image* image = pbr.base_color_texture.texture->image;
 
 					if (image)
-					{
-						material.baseColorTexture = LoadTexture(image);
-					}
+						material.baseColorTexture = LoadTexture(image, TextureType::Color);
 				}
+
+				// Metallic + roughness texture
+				if (pbr.metallic_roughness_texture.texture)
+				{
+					cgltf_image* image = pbr.metallic_roughness_texture.texture->image;
+
+					if (image)
+						material.metallicRoughnessTexture = LoadTexture(image, TextureType::Data);
+				}
+
+				// Normal texture
+				if (gltfMaterial->normal_texture.texture)
+				{
+					cgltf_image* image = gltfMaterial->normal_texture.texture->image;
+
+					if (image)
+						material.normalTexture = LoadTexture(image, TextureType::Data);
+				}
+
+				// Occlusion texture
+				if (gltfMaterial->occlusion_texture.texture)
+				{
+					cgltf_image* image = gltfMaterial->occlusion_texture.texture->image;
+
+					if (image)
+						material.occlusionTexture = LoadTexture(image, TextureType::Data);
+				}
+
+				// Emissive texture
+				if (gltfMaterial->emissive_texture.texture)
+				{
+					cgltf_image* image = gltfMaterial->emissive_texture.texture->image;
+
+					if (image)
+						material.emissiveTexture = LoadTexture(image, TextureType::Color);
+				}
+
+				// Emissive factor
+				material.emissive = glm::vec3(
+					gltfMaterial->emissive_factor[0],
+					gltfMaterial->emissive_factor[1],
+					gltfMaterial->emissive_factor[2]
+				);
 			}
 
 			cgltf_accessor* positionAccessor = nullptr;
@@ -258,6 +328,8 @@ Model::Model(const char* file)
 		}
 	}
 
+	std::cout << "Model Loaded Successfully: " << (std::string)file << std::endl;
+
 	cgltf_free(data);
 }
 
@@ -265,7 +337,7 @@ Model::~Model()
 {
 }
 
-void Model::Draw(Shader& shader) const
+void Model::Draw(Shader& shader, unsigned int skyboxTexture) const
 {
 	//int count = 0;
 
@@ -286,7 +358,7 @@ void Model::Draw(Shader& shader) const
 
 		//shader.SetVec4("colorUni", color);
 
-		mesh.Draw(shader);
+		mesh.Draw(shader, skyboxTexture);
 	}
 }
 

@@ -19,7 +19,17 @@ struct Vertex
 struct Material
 {
 	glm::vec4 baseColor = glm::vec4(1.0f);
+
+	float metallic = 0.0f;
+	float roughness = 1.0f;
+
+	glm::vec3 emissive = glm::vec3(0.0f);
+
 	std::shared_ptr<Texture> baseColorTexture;
+	std::shared_ptr<Texture> metallicRoughnessTexture;
+	std::shared_ptr<Texture> normalTexture;
+	std::shared_ptr<Texture> occlusionTexture;
+	std::shared_ptr<Texture> emissiveTexture;
 };
 
 class Mesh
@@ -34,7 +44,7 @@ public:
 	Mesh(Mesh&& other) noexcept;
 	Mesh& operator=(Mesh&& other) noexcept;
 
-	void Draw(Shader& shader) const;
+	void Draw(Shader& shader, unsigned int skyboxTexture) const;
 
 private:
 	std::vector<Vertex> vertices;

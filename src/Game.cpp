@@ -136,10 +136,12 @@ int Game::Init()
 {
 	ui = UI();
 	camera = Camera(glm::vec3(0.0f, 0.0f, 3.0f));
-	modelShader = Shader("shaders/model.vert", "shaders/model.frag");
-	skybox = Cubemap("assets/textures/cubemaps/skybox/");
+	modelShader = Shader("shaders/model2.vert", "shaders/model2.frag");
+	//skybox = Cubemap("assets/textures/cubemaps/bruh/", "png");
+	skybox = Cubemap::FromHDRI("assets/textures/hdris/space_milky_8k.hdr");
+	//skybox = Cubemap::FromSingleFile("assets/textures/cubemaps/singles/night_sky_upscaled.png");
 
-	models.emplace_back("assets/models/axe.glb");
+	models.emplace_back("assets/models/a8.glb");
 
 	return 0;
 }
@@ -184,11 +186,6 @@ void Game::update()
 		100.0f
 	);
 
-	skybox.Render(view, projection);
-
-
-	modelShader.Use();
-
 	glm::mat4 model = glm::mat4(1.0f);
 
 	modelShader.Use();
@@ -197,10 +194,14 @@ void Game::update()
 	modelShader.SetMat4("view", view);
 	modelShader.SetMat4("projection", projection);
 
+	modelShader.SetVec3("cameraPos", camera.GetPosition());
+	modelShader.SetFloat("reflectionStrength", 0.0f);
+
 	for (const Model& model : models) {
-		model.Draw(modelShader);
+		model.Draw(modelShader, skybox.GetTexture());
 	}
 
+	skybox.Render(view, projection);
 
 	ui.Update(fps, windowWidth, windowHeight);
 	ui.Render();
