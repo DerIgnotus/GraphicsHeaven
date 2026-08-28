@@ -137,8 +137,9 @@ int Game::Init()
 	ui = UI();
 	camera = Camera(glm::vec3(0.0f, 0.0f, 3.0f));
 	modelShader = Shader("shaders/model.vert", "shaders/model.frag");
+	skybox = Cubemap("assets/textures/cubemaps/skybox/");
 
-	models.emplace_back("assets/models/lambo2.glb");
+	models.emplace_back("assets/models/axe.glb");
 
 	return 0;
 }
@@ -174,9 +175,6 @@ void Game::Run()
 
 void Game::update()
 {
-	modelShader.Use();
-
-	glm::mat4 model = glm::mat4(1.0f);
 	glm::mat4 view = camera.GetViewMatrix();
 
 	glm::mat4 projection = glm::perspective(
@@ -185,6 +183,13 @@ void Game::update()
 		0.1f,
 		100.0f
 	);
+
+	skybox.Render(view, projection);
+
+
+	modelShader.Use();
+
+	glm::mat4 model = glm::mat4(1.0f);
 
 	modelShader.Use();
 
@@ -195,6 +200,7 @@ void Game::update()
 	for (const Model& model : models) {
 		model.Draw(modelShader);
 	}
+
 
 	ui.Update(fps, windowWidth, windowHeight);
 	ui.Render();

@@ -11,6 +11,7 @@
 #include "Graphics/Model.hpp"
 #include "Graphics/Shader.hpp"
 #include "Graphics/Mesh.hpp"
+#include "World/Cubemap.hpp"
 
 enum GameState {
 	GAME_ACTIVE,
@@ -64,6 +65,7 @@ private:
 	Camera camera;
 	Renderer renderer;
 	UI ui;
+	Cubemap skybox;
 
 	GLFWwindow* window = nullptr;
 
