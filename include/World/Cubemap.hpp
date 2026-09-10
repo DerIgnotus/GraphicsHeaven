@@ -12,8 +12,6 @@ class Cubemap {
 public:
 	Cubemap();
 	Cubemap(const char* path, const char* format = "jpg");
-	static Cubemap FromHDRI(const char* path);
-	static Cubemap FromSingleFile(const char* path);
 
 	~Cubemap();
 
@@ -22,18 +20,10 @@ public:
 
 private:
 	void setupSkybox();
-	void loadHDRI(const char* path);
-	void loadCrossCubemap(const char* path);
-
-	void convertEquirectangularToCubemap(
-		unsigned int equirectangularTexture,
-		unsigned int resolution
-	);
 
 	unsigned int skyboxVAO, skyboxVBO;
 	unsigned int cubemapTexture = 0;
 	Shader skyboxShader;
-
 
 	float skyboxVertices[108] = {
 		// positions          

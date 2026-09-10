@@ -137,11 +137,9 @@ int Game::Init()
 	ui = UI();
 	camera = Camera(glm::vec3(0.0f, 0.0f, 3.0f));
 	modelShader = Shader("shaders/model2.vert", "shaders/model2.frag");
-	//skybox = Cubemap("assets/textures/cubemaps/bruh/", "png");
-	skybox = Cubemap::FromHDRI("assets/textures/hdris/space_milky_8k.hdr");
-	//skybox = Cubemap::FromSingleFile("assets/textures/cubemaps/singles/night_sky_upscaled.png");
+	skybox = Cubemap("assets/textures/cubemaps/skybox/");
 
-	models.emplace_back("assets/models/a8.glb");
+	models.emplace_back("assets/models/a1.glb");
 
 	return 0;
 }
