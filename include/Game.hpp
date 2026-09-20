@@ -12,6 +12,8 @@
 #include "Graphics/Shader.hpp"
 #include "Graphics/Mesh.hpp"
 #include "World/Cubemap.hpp"
+#include "World/Sky.hpp"
+#include "Core/Window.hpp"
 
 enum GameState {
 	GAME_ACTIVE,
@@ -30,24 +32,15 @@ public:
 
 	void Run();
 
-	void OnFramebufferResize(int width, int height);
-	void OnMouseMove(double xpos, double ypos);
-	void OnMouseScroll(double xoffset, double yoffset);
-
-
 	const Camera& GetCamera() const { return camera; }
 	const GameState& GetGameState() const { return gameState; }
 	const float GetDeltaTime() const { return deltaTime; }
 
-	GLFWwindow* GetWindow() const { return window; }
+	GLFWwindow* GetGLFWWindow() const { return window.GetGLFWWindow(); }
 
 private:
 	void update();
 	void processInput();
-	void setCursorLocked(bool locked);
-
-	unsigned int windowWidth, windowHeight;
-	const char* gameName;
 
 	float deltaTime = 0.0f;
 	float lastFrame = 0.0f;
@@ -55,10 +48,7 @@ private:
 	double fpsTimer = 0.0f;
 	int frameCount = 0;
 
-	bool cursorLocked = true;
 	bool tabWasPressed = false;
-
-	bool vsync;
 
 	GameState gameState;
 
@@ -66,8 +56,9 @@ private:
 	Renderer renderer;
 	UI ui;
 	Cubemap skybox;
-
-	GLFWwindow* window = nullptr;
+	Sky sky;
+	Window window;
+	GLFWwindow* glfwWindow;
 
 	Shader modelShader;
 

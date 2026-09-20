@@ -2,6 +2,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include <iostream>
 
 UI::UI()
 {
@@ -11,7 +12,7 @@ UI::~UI()
 {
 }
 
-void UI::Update(double fps, unsigned int windowWidth, unsigned int windowHeight)
+void UI::Update(double fps, glm::vec2 windowSize)
 {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
@@ -20,7 +21,8 @@ void UI::Update(double fps, unsigned int windowWidth, unsigned int windowHeight)
 	ImGui::Begin("Information");
 
 	ImGui::Text("FPS: %.1f", fps);
-	ImGui::Text("Window: %u x %u", windowWidth, windowHeight);
+
+	ImGui::Text("Window: %d x %d", static_cast<int>(windowSize.x), static_cast<int>(windowSize.y));
 
 
 	ImGui::End();

@@ -8,7 +8,7 @@ int main()
 	if (game.Init())
 		return 1;
 
-	while (game.GetGameState() != GameState::GAME_END && !glfwWindowShouldClose(game.GetWindow())) {
+	while (game.GetGameState() != GameState::GAME_END && !glfwWindowShouldClose(game.GetGLFWWindow())) {
 		game.Run();
 	}
 
