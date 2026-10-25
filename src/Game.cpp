@@ -99,12 +99,15 @@ int Game::ExtInit()
 int Game::Init()
 {
 	ui = UI();
-	camera = Camera(glm::vec3(0.0f, 0.0f, 3.0f));
+	camera = Camera(glm::vec3(0.0f, 50.0f, 3.0f));
 	modelShader = Shader("shaders/model2.vert", "shaders/model2.frag");
 	//skybox = Cubemap("assets/textures/cubemaps/skybox/");
+
+	world = std::make_unique<World>(1, 50.0f, 1);
+
 	sky.SetUp();
 
-	models.emplace_back("assets/models/a1.glb");
+	//models.emplace_back("assets/models/juggernaut.glb");
 
 	return 0;
 }
@@ -114,6 +117,8 @@ void Game::Run()
 	float currentFrame = static_cast<float>(glfwGetTime());
 	deltaTime = currentFrame - lastFrame;
 	lastFrame = currentFrame;
+
+	simulationTime += deltaTime * (timeMultiplier / 3600.0f);
 
 	fpsTimer += deltaTime;
 	frameCount++;
@@ -141,14 +146,13 @@ void Game::Run()
 void Game::update()
 {
 	glm::mat4 view = camera.GetViewMatrix();
-
 	glm::mat4 projection = window.GetProjMatrix(camera.GetZoom());
-
 	glm::mat4 invViewProjection = glm::inverse(projection * view);
-
 	glm::vec2 windowSize = window.GetWindowSize();
 
-	sky.Render(invViewProjection, windowSize);
+	sky.Update(simulationTime);
+
+	sky.Render(invViewProjection, windowSize, camera.GetPosition(), simulationTime);
 
 	glm::mat4 model = glm::mat4(1.0f);
 
@@ -159,15 +163,22 @@ void Game::update()
 	modelShader.SetMat4("projection", projection);
 
 	modelShader.SetVec3("cameraPos", camera.GetPosition());
-	modelShader.SetFloat("reflectionStrength", 0.0f);
+
+	glm::vec3 sunDir = sky.GetSunDirection();
+
+	modelShader.SetVec3("sunDirection", sunDir);
+	//modelShader.SetFloat("reflectionStrength", 0.0f);
 
 	for (const Model& model : models) {
-		model.Draw(modelShader, skybox.GetTexture());
+		model.Draw(modelShader);
 	}
+
+	world->Update(camera.GetPosition());
+	world->Draw(model, view, projection);
 
 	//skybox.Render(view, projection);
 
-	ui.Update(fps, windowSize);
+	ui.Update(fps, windowSize, timeMultiplier, camera.GetMovementSpeed());
 	ui.Render();
 }
 

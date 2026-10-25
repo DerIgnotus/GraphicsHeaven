@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glad/glad.h>
+#include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <vector>
@@ -14,6 +15,7 @@
 #include "World/Cubemap.hpp"
 #include "World/Sky.hpp"
 #include "Core/Window.hpp"
+#include "World/World.hpp"
 
 enum GameState {
 	GAME_ACTIVE,
@@ -48,6 +50,9 @@ private:
 	double fpsTimer = 0.0f;
 	int frameCount = 0;
 
+	float simulationTime = 12.0f;
+	float timeMultiplier = 15.0f;
+
 	bool tabWasPressed = false;
 
 	GameState gameState;
@@ -58,7 +63,8 @@ private:
 	Cubemap skybox;
 	Sky sky;
 	Window window;
-	GLFWwindow* glfwWindow;
+	std::unique_ptr<World> world;
+	GLFWwindow* glfwWindow = nullptr;
 
 	Shader modelShader;
 

@@ -337,7 +337,7 @@ Model::~Model()
 {
 }
 
-void Model::Draw(Shader& shader, unsigned int skyboxTexture) const
+void Model::Draw(Shader& shader) const
 {
 	//int count = 0;
 
@@ -358,7 +358,7 @@ void Model::Draw(Shader& shader, unsigned int skyboxTexture) const
 
 		//shader.SetVec4("colorUni", color);
 
-		mesh.Draw(shader, skyboxTexture);
+		mesh.Draw(shader);
 	}
 }
 

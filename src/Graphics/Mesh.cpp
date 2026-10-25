@@ -59,7 +59,7 @@ Mesh::~Mesh()
 }
 
 
-void Mesh::Draw(Shader& shader, unsigned int skyBox) const
+void Mesh::Draw(Shader& shader) const
 {
 	shader.SetVec4("baseColor", material.baseColor);
 	shader.SetFloat("metallic", material.metallic);

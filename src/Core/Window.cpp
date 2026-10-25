@@ -79,7 +79,7 @@ const glm::mat4 Window::GetProjMatrix(float cameraZoom)
 		glm::radians(cameraZoom),
 		(float)windowWidth / (float)windowHeight,
 		0.1f,
-		100.0f
+		1000.0f
 	);
 }
 

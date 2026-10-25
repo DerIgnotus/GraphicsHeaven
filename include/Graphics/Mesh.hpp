@@ -44,7 +44,7 @@ public:
 	Mesh(Mesh&& other) noexcept;
 	Mesh& operator=(Mesh&& other) noexcept;
 
-	void Draw(Shader& shader, unsigned int skyboxTexture) const;
+	void Draw(Shader& shader) const;
 
 private:
 	std::vector<Vertex> vertices;

@@ -6,7 +6,7 @@ public:
 	UI();
 	~UI();
 
-	void Update(double fps, glm::vec2 windowSize);
+	void Update(double fps, glm::vec2 windowSize, float& timeMultiplier, float& camMovementSpeed);
 	void Render();
 
 private:

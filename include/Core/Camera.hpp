@@ -34,10 +34,13 @@ public:
 	glm::mat4 GetViewMatrix() const { return glm::lookAt(position, position + front, up); }
 	float GetZoom() const { return zoom; }
 	glm::vec3 GetPosition() const { return position; }
+	float& GetMovementSpeed() { return movementSpeed; }
 
 private:
 
 	void updateCameraVectors();
+
+	float speed;
 
 	// camera Attributes
 	glm::vec3 position;

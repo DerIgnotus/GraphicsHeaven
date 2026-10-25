@@ -118,6 +118,7 @@ target_include_directories(GraphicsHeaven PRIVATE
 
     external/cgltf
     external/stb
+    external/fastnoiselite
 )
 
 

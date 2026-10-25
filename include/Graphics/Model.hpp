@@ -22,7 +22,7 @@ public:
 	Model(Model&& other) noexcept;
 	Model& operator=(Model&& other) noexcept;
 
-	void Draw(Shader& shader, unsigned int skyboxTexture) const;
+	void Draw(Shader& shader) const;
 
 private:
 	std::shared_ptr<Texture> LoadTexture(

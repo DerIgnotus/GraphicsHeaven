@@ -12,7 +12,7 @@ UI::~UI()
 {
 }
 
-void UI::Update(double fps, glm::vec2 windowSize)
+void UI::Update(double fps, glm::vec2 windowSize, float& timeMultiplier, float& camMovementSpeed)
 {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
@@ -24,6 +24,13 @@ void UI::Update(double fps, glm::vec2 windowSize)
 
 	ImGui::Text("Window: %d x %d", static_cast<int>(windowSize.x), static_cast<int>(windowSize.y));
 
+	ImGui::Separator();
+	ImGui::Text("Camera Settings");
+	ImGui::SliderFloat("Movement Speed", &camMovementSpeed, 0.1f, 100.0f, "%.1fx");
+
+	ImGui::Separator();
+	ImGui::Text("Environment");
+	ImGui::SliderFloat("Time Speed", &timeMultiplier, 0.0f, 600.0f, "%.1fx");
 
 	ImGui::End();
 }
