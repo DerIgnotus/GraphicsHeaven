@@ -9,6 +9,7 @@
 
 struct MeshData {
 	int chunkX, chunkZ;
+	int lod;
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 };

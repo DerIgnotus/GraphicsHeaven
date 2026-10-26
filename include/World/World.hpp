@@ -21,12 +21,16 @@ public:
 	void Draw(glm::mat4& model, glm::mat4& view, glm::mat4& projection);
 
 private:
+	int CalculateLOD(int chunkX, int chunkZ, int playerX, int playerZ);
+
+	std::map<std::pair<int, int>, int> activeChunkLODs;
+
 	int seed = 1;
 	float heightMultiplier = 1.0f;
 	int lod = 1;
 
 	const int chunkSize = 240;      // (mapChunkSize - 1)
-	const int renderDistance = 2;   // 5 x 5 chunks
+	const int renderDistance = 6;   // ((renderDistance * 2) + 1) * ((renderDistance * 2) + 1)
 
 	Shader terrainShader;
 

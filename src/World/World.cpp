@@ -33,7 +33,9 @@ void World::Update(const glm::vec3& cameraPos)
 
 			auto terrain = std::make_unique<Terrain>();
 			terrain->UploadToGPU(data);
+
 			activeChunks[key] = std::move(terrain);
+			activeChunkLODs[key] = data.lod;
 		}
 	}
 
@@ -51,17 +53,28 @@ void World::Update(const glm::vec3& cameraPos)
 
 	for (auto it = activeChunks.begin(); it != activeChunks.end();)
 	{
-		if (requiredChunks.find(it->first) == requiredChunks.end()) {
+		const auto& key = it->first;
+
+		if (requiredChunks.find(key) == requiredChunks.end())
+		{
+			activeChunkLODs.erase(key);
 			it = activeChunks.erase(it);
 		}
-		else {
+		else
+		{
 			++it;
 		}
 	}
 
 	for (const auto& key : requiredChunks)
 	{
-		if (activeChunks.find(key) == activeChunks.end() && loadingChunks.find(key) == loadingChunks.end())
+		int targetLOD = CalculateLOD(key.first, key.second, playerChunkX, playerChunkZ);
+
+		bool needsGeneration =
+			activeChunks.find(key) == activeChunks.end() ||
+			activeChunkLODs[key] != targetLOD;
+
+		if (needsGeneration && loadingChunks.find(key) == loadingChunks.end())
 		{
 			loadingChunks.insert(key);
 
@@ -69,14 +82,19 @@ void World::Update(const glm::vec3& cameraPos)
 			int targetZ = key.second;
 			int s = seed;
 			float hm = heightMultiplier;
-			int l = lod;
 
-			backgroundTasks.push_back(std::async(std::launch::async, [this, targetX, targetZ, s, hm, l]() {
-				MeshData data = Terrain::GenerateData(targetX, targetZ, s, hm, l);
+			backgroundTasks.push_back(std::async(
+				std::launch::async,
+				[this, targetX, targetZ, s, hm, targetLOD]()
+				{
+					MeshData data = Terrain::GenerateData(
+						targetX, targetZ, s, hm, targetLOD
+					);
 
-				std::lock_guard<std::mutex> lock(this->queueMutex);
-				this->completedChunksQueue.push(std::move(data));
-				}));
+					std::lock_guard<std::mutex> lock(this->queueMutex);
+					this->completedChunksQueue.push(std::move(data));
+				}
+			));
 		}
 	}
 }
@@ -91,4 +109,17 @@ void World::Draw(glm::mat4& model, glm::mat4& view, glm::mat4& projection)
 		glm::mat4 chunkModel = glm::translate(model, glm::vec3(chunkX * chunkSize, 0.0f, chunkZ * chunkSize));
 		pair.second->Draw(chunkModel, view, projection, terrainShader);
 	}
+}
+
+int World::CalculateLOD(int chunkX, int chunkZ, int playerX, int playerZ)
+{
+	int distX = std::abs(chunkX - playerX);
+	int distZ = std::abs(chunkZ - playerZ);
+	int maxDist = std::max(distX, distZ);
+
+	if (maxDist <= 1) return 1;
+	if (maxDist == 2) return 2;
+	if (maxDist == 3) return 4;
+	if (maxDist == 4) return 8;
+	return 16;
 }
