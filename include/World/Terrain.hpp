@@ -7,9 +7,15 @@
 #include "Utility/Noise.hpp"
 #include <Graphics/Mesh.hpp>
 
+static const float scale = 0.35f;
+static const int octaves = 4;
+static const float persistance = 0.5f;
+static const float lacunarity = 2.0f;
+
 struct MeshData {
 	int chunkX, chunkZ;
 	int lod;
+
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 };
@@ -23,7 +29,7 @@ public:
 
 	void UploadToGPU(const MeshData& data);
 
-	void Draw(glm::mat4& model, glm::mat4& view, glm::mat4& projection, Shader& shader);
+	void Draw(glm::mat4& model, Shader& shader);
 
 private:
 	const int mapChunkSize = 241;

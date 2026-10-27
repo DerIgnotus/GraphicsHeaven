@@ -26,11 +26,11 @@ void UI::Update(double fps, glm::vec2 windowSize, float& timeMultiplier, float& 
 
 	ImGui::Separator();
 	ImGui::Text("Camera Settings");
-	ImGui::SliderFloat("Movement Speed", &camMovementSpeed, 0.1f, 100.0f, "%.1fx");
+	ImGui::SliderFloat("Movement Speed", &camMovementSpeed, 0.1f, 200.0f, "%.1fx");
 
 	ImGui::Separator();
 	ImGui::Text("Environment");
-	ImGui::SliderFloat("Time Speed", &timeMultiplier, 0.0f, 600.0f, "%.1fx");
+	ImGui::SliderFloat("Time Speed", &timeMultiplier, 0.0f, 2000.0f, "%.1fx");
 
 	ImGui::End();
 }

@@ -174,7 +174,7 @@ void Game::update()
 	}
 
 	world->Update(camera.GetPosition());
-	world->Draw(model, view, projection);
+	world->Draw(model, view, projection, camera.GetPosition(), sunDir);
 
 	//skybox.Render(view, projection);
 

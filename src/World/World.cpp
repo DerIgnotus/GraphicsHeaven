@@ -2,13 +2,27 @@
 #include <cmath>
 #include <glm/ext/matrix_transform.hpp>
 
-World::World() {}
+//World::World() {}
 World::~World() {}
 
 World::World(int seed, float heightMultiplier, int lod) :
 	seed(seed), heightMultiplier(heightMultiplier),
-	lod(lod), terrainShader("shaders/terrain.vert", "shaders/terrain.frag")
+	lod(lod), terrainShader("shaders/terrain.vert", "shaders/terrain.frag"),
+	sandTexture("assets/textures/sand_color.jpg", TextureType::Color),
+	grassTexture("assets/textures/grass_color.jpg", TextureType::Color),
+	rockTexture("assets/textures/rock_color.jpg", TextureType::Color),
+	snowTexture("assets/textures/snow_color.jpg", TextureType::Color)
 {
+	terrainShader.Use();
+
+	terrainShader.SetInt("sandTexture", 0);
+	terrainShader.SetInt("grassTexture", 1);
+	terrainShader.SetInt("rockTexture", 2);
+	terrainShader.SetInt("snowTexture", 3);
+
+	terrainShader.SetFloat("textureScale", 0.05f);
+
+	terrainShader.SetFloat("waterLevel", waterLevel);
 }
 
 void World::Update(const glm::vec3& cameraPos)
@@ -99,16 +113,33 @@ void World::Update(const glm::vec3& cameraPos)
 	}
 }
 
-void World::Draw(glm::mat4& model, glm::mat4& view, glm::mat4& projection)
+void World::Draw(glm::mat4& model, glm::mat4& view, glm::mat4& projection, const glm::vec3& cameraPos, glm::vec3& sunDirection)
 {
+	terrainShader.Use();
+
+	terrainShader.SetMat4("view", view);
+	terrainShader.SetMat4("projection", projection);
+
+	//terrainShader.SetVec3("viewPos", cameraPos);
+	terrainShader.SetVec3("sunDir", sunDirection);
+
+	sandTexture.Bind(0);
+	grassTexture.Bind(1);
+	rockTexture.Bind(2);
+	snowTexture.Bind(3);
+
 	for (auto& pair : activeChunks)
 	{
 		int chunkX = pair.first.first;
 		int chunkZ = pair.first.second;
 
-		glm::mat4 chunkModel = glm::translate(model, glm::vec3(chunkX * chunkSize, 0.0f, chunkZ * chunkSize));
-		pair.second->Draw(chunkModel, view, projection, terrainShader);
+		glm::mat4 chunkModel = glm::translate(model, glm::vec3(chunkX * chunkSize, terrainLevel, chunkZ * chunkSize));
+		pair.second->Draw(chunkModel, terrainShader);
 	}
+
+	float waterSize = (2 * renderDistance + 1) * chunkSize;
+
+	water.Draw(view, projection, cameraPos, waterSize);
 }
 
 int World::CalculateLOD(int chunkX, int chunkZ, int playerX, int playerZ)

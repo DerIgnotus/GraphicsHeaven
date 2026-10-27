@@ -13,6 +13,10 @@ Terrain::~Terrain()
 
 MeshData Terrain::GenerateData(int chunkX, int chunkZ, int seed, float heightMultiplier, int meshStep)
 {
+	FastNoiseLite noise;
+	noise.SetSeed(seed);
+	noise.SetNoiseType(FastNoiseLite::NoiseType::NoiseType_Perlin);
+
 	if (meshStep < 1) meshStep = 1;
 	const int mapChunkSize = 241;
 
@@ -20,11 +24,26 @@ MeshData Terrain::GenerateData(int chunkX, int chunkZ, int seed, float heightMul
 	float worldOffsetZ = chunkZ * (mapChunkSize - 1);
 
 	const std::vector<float> noiseMap = NoiseGen::GenerateNoiseMap(
+		noise,
 		mapChunkSize, mapChunkSize,
-		0.5f, 3, 0.35f, 4.0f,
-		seed,
+		scale, octaves, persistance, lacunarity,
 		glm::vec2(worldOffsetX, worldOffsetZ)
 	);
+
+	auto getHeight = [&](int x, int z) -> float
+		{
+			if (x >= 0 && x < mapChunkSize && z >= 0 && z < mapChunkSize)
+			{
+				return noiseMap[z * mapChunkSize + x] * heightMultiplier;
+			}
+
+			return NoiseGen::GetHeight(
+				noise,
+				worldOffsetX + x,
+				worldOffsetZ + z,
+				scale, octaves, persistance, lacunarity
+			) * heightMultiplier;
+		};
 
 	MeshData data;
 	data.chunkX = chunkX;
@@ -45,7 +64,17 @@ MeshData Terrain::GenerateData(int chunkX, int chunkZ, int seed, float heightMul
 			float height = rawHeight * heightMultiplier;
 
 			vertex.position = glm::vec3((float)x - halfSize, height, (float)z - halfSize);
-			vertex.normal = glm::vec3(0.0f, 1.0f, 0.0f);
+
+			float left = getHeight(x - 1, z);
+			float right = getHeight(x + 1, z);
+			float down = getHeight(x, z - 1);
+			float up = getHeight(x, z + 1);
+
+			vertex.normal = glm::normalize(glm::vec3(
+				left - right,
+				2.0f,
+				down - up
+			));
 
 			float normalizedHeight = (rawHeight + 1.0f) * 0.5f;
 			vertex.texCoord = glm::vec2((float)x / mapChunkSize, normalizedHeight);
@@ -156,15 +185,13 @@ void Terrain::UploadToGPU(const MeshData& data)
 	glBindVertexArray(0);
 }
 
-void Terrain::Draw(glm::mat4& model, glm::mat4& view, glm::mat4& projection, Shader& shader)
+void Terrain::Draw(glm::mat4& model, Shader& shader)
 {
 	if (indexCount == 0) return;
 
 	shader.Use();
 
 	shader.SetMat4("model", model);
-	shader.SetMat4("view", view);
-	shader.SetMat4("projection", projection);
 
 	glBindVertexArray(VAO);
 

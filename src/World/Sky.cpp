@@ -31,9 +31,14 @@ void Sky::SetUp() {
 }
 
 void Sky::Update(float time) {
-	// 24-hour cycle orbit calculation
-	float sunAngle = (time / 24.0f) * 2.0f * 3.1415926535f;
-	sunDirection = glm::normalize(glm::vec3(0.0f, sin(sunAngle), cos(sunAngle)));
+	// Sunrise at 6:00, noon at 12:00, sunset at 18:00
+	float sunAngle = ((time - 6.0f) / 24.0f) * 2.0f * 3.1415926535f;
+
+	sunDirection = glm::normalize(glm::vec3(
+		0.0f,
+		sin(sunAngle),
+		cos(sunAngle)
+	));
 }
 
 void Sky::Render(const glm::mat4& invViewProjection, const glm::vec2& screenSize, const glm::vec3& cameraPosition, float time) {

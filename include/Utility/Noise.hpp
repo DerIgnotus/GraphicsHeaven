@@ -7,12 +7,11 @@
 #include "FastNoiseLite.h"
 
 namespace NoiseGen {
-	inline std::vector<float> GenerateNoiseMap(int mapWidth, int mapHeight, float scale, int octaves, float persistance, float lacunarity, int seed, glm::vec2 worldOffset = glm::vec2(0, 0), FastNoiseLite::NoiseType noiseType = FastNoiseLite::NoiseType::NoiseType_Perlin)
+	inline std::vector<float> GenerateNoiseMap(
+		FastNoiseLite& noise, int mapWidth, int mapHeight, float scale, int octaves,
+		float persistance, float lacunarity, glm::vec2 worldOffset = glm::vec2(0, 0)
+	)
 	{
-		FastNoiseLite noise;
-		noise.SetSeed(seed);
-		noise.SetNoiseType(noiseType);
-
 		std::vector<float> noiseMap(mapWidth * mapHeight);
 
 		if (scale <= 0.0f)
@@ -46,4 +45,33 @@ namespace NoiseGen {
 
 		return noiseMap;
 	}
+
+	inline float GetHeight(FastNoiseLite& noise, float worldX, float worldZ, float scale, int octaves, float persistance, float lacunarity)
+	{
+		if (scale <= 0.0f)
+			scale = 0.00001f;
+
+		float amplitude = 1.0f;
+		float frequency = 1.0f;
+		float noiseHeight = 0.0f;
+
+		float sampleX = worldX * scale;
+		float sampleZ = worldZ * scale;
+
+		for (int i = 0; i < octaves; i++)
+		{
+			float perlinValue = noise.GetNoise(
+				sampleX * frequency,
+				sampleZ * frequency
+			);
+
+			noiseHeight += perlinValue * amplitude;
+
+			amplitude *= persistance;
+			frequency *= lacunarity;
+		}
+
+		return noiseHeight;
+	}
 }
+
