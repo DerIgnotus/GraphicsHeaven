@@ -8,17 +8,21 @@ World::~World() {}
 World::World(int seed, float heightMultiplier, int lod) :
 	seed(seed), heightMultiplier(heightMultiplier),
 	lod(lod), terrainShader("shaders/terrain.vert", "shaders/terrain.frag"),
-	sandTexture("assets/textures/sand_color.jpg", TextureType::Color),
-	grassTexture("assets/textures/grass_color.jpg", TextureType::Color),
-	rockTexture("assets/textures/rock_color.jpg", TextureType::Color),
-	snowTexture("assets/textures/snow_color.jpg", TextureType::Color)
+	desertTexture("assets/textures/sand_color.jpg", TextureType::Color),
+	plainsTexture("assets/textures/grass_color.jpg", TextureType::Color),
+	mountainsTexture("assets/textures/rock_color.jpg", TextureType::Color),
+	snowTexture("assets/textures/snow_color.jpg", TextureType::Color),
+	hillsTexture("assets/textures/hill_color.jpg", TextureType::Color),
+	forestTexture("assets/textures/forest_color.jpg", TextureType::Color)
 {
 	terrainShader.Use();
 
-	terrainShader.SetInt("sandTexture", 0);
-	terrainShader.SetInt("grassTexture", 1);
-	terrainShader.SetInt("rockTexture", 2);
-	terrainShader.SetInt("snowTexture", 3);
+	terrainShader.SetInt("plainsTexture", 0);
+	terrainShader.SetInt("desertTexture", 1);
+	terrainShader.SetInt("forestTexture", 2);
+	terrainShader.SetInt("hillsTexture", 3);
+	terrainShader.SetInt("mountainsTexture", 4);
+	terrainShader.SetInt("snowTexture", 5);
 
 	terrainShader.SetFloat("textureScale", 0.05f);
 
@@ -122,11 +126,16 @@ void World::Draw(glm::mat4& model, glm::mat4& view, glm::mat4& projection, const
 
 	//terrainShader.SetVec3("viewPos", cameraPos);
 	terrainShader.SetVec3("sunDir", sunDirection);
+	terrainShader.SetFloat("waterLevel", waterLevel);
 
-	sandTexture.Bind(0);
-	grassTexture.Bind(1);
-	rockTexture.Bind(2);
-	snowTexture.Bind(3);
+	terrainShader.SetFloat("textureScale", 0.025f);
+
+	plainsTexture.Bind(0);
+	desertTexture.Bind(1);
+	forestTexture.Bind(2);
+	hillsTexture.Bind(3);
+	mountainsTexture.Bind(4);
+	snowTexture.Bind(5);
 
 	for (auto& pair : activeChunks)
 	{
@@ -137,9 +146,26 @@ void World::Draw(glm::mat4& model, glm::mat4& view, glm::mat4& projection, const
 		pair.second->Draw(chunkModel, terrainShader);
 	}
 
-	float waterSize = (2 * renderDistance + 1) * chunkSize;
+	water.BeginDraw(view, projection, cameraPos);
 
-	water.Draw(view, projection, cameraPos, waterSize);
+	Shader& waterShader = water.GetShader();
+
+	for (auto& [chunkPos, terrain] : activeChunks)
+	{
+		const int chunkX = chunkPos.first;
+		const int chunkZ = chunkPos.second;
+
+		glm::mat4 waterModel = glm::translate(
+			model,
+			glm::vec3(
+				chunkX * chunkSize,
+				waterLevel,
+				chunkZ * chunkSize
+			)
+		);
+
+		terrain->DrawWater(waterModel, waterShader);
+	}
 }
 
 int World::CalculateLOD(int chunkX, int chunkZ, int playerX, int playerZ)

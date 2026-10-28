@@ -16,6 +16,17 @@ struct Vertex
 	glm::vec2 texCoord;
 };
 
+struct DebugVertex
+{
+	glm::vec3 position;
+	glm::vec3 normal;
+	glm::vec2 texCoord;
+
+	float continentalness;
+	float temperature;
+	float moisture;
+};
+
 struct Material
 {
 	glm::vec4 baseColor = glm::vec4(1.0f);

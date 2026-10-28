@@ -73,5 +73,13 @@ namespace NoiseGen {
 
 		return noiseHeight;
 	}
+
+	inline float GetNoise01(FastNoiseLite& noise, float worldX, float worldZ, float scale)
+	{
+		return noise.GetNoise(
+			worldX * scale,
+			worldZ * scale
+		) * 0.5f + 0.5f;
+	}
 }
 

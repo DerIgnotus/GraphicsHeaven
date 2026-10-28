@@ -23,18 +23,20 @@ public:
 	void Draw(glm::mat4& model, glm::mat4& view, glm::mat4& projection, const glm::vec3& cameraPos, glm::vec3& sunDirection);
 
 private:
-	float waterLevel = 0.0f;
-	Water water{ waterLevel };
-	float terrainLevel = 30.0f;
+	float waterLevel = -25.0f;
+	Water water{ -250.0f };
+	float terrainLevel = 0.0f;
 
 	int CalculateLOD(int chunkX, int chunkZ, int playerX, int playerZ);
 
 	Shader terrainShader;
 
-	Texture sandTexture;
-	Texture grassTexture;
-	Texture rockTexture;
+	Texture desertTexture;
+	Texture plainsTexture;
+	Texture mountainsTexture;
 	Texture snowTexture;
+	Texture hillsTexture;
+	Texture forestTexture;
 
 	std::map<std::pair<int, int>, int> activeChunkLODs;
 

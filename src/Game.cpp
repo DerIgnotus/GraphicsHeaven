@@ -99,11 +99,11 @@ int Game::ExtInit()
 int Game::Init()
 {
 	ui = UI();
-	camera = Camera(glm::vec3(0.0f, 50.0f, 3.0f));
+	camera = Camera(glm::vec3(0.0f, 10.0f, 0.0f));
 	modelShader = Shader("shaders/model2.vert", "shaders/model2.frag");
 	//skybox = Cubemap("assets/textures/cubemaps/skybox/");
 
-	world = std::make_unique<World>(1, 50.0f, 1);
+	world = std::make_unique<World>(1, 10.0f, 1);
 
 	sky.SetUp();
 
