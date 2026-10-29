@@ -11,6 +11,7 @@
 #include "Graphics/Shader.hpp"
 #include "Graphics/Texture.hpp"
 #include "World/Water.hpp"
+#include "Ecosystem/Grass.hpp"
 
 class World {
 public:
@@ -24,8 +25,12 @@ public:
 
 private:
 	float waterLevel = -25.0f;
-	Water water{ -250.0f };
+	//Water water{ -250.0f };
 	float terrainLevel = 0.0f;
+
+	GrassRenderer grass;
+	Shader grassShader;
+	Texture grassTexture;
 
 	int CalculateLOD(int chunkX, int chunkZ, int playerX, int playerZ);
 
@@ -45,7 +50,7 @@ private:
 	int lod = 1;
 
 	const int chunkSize = 240;      // (mapChunkSize - 1)
-	const int renderDistance = 8;   // ((renderDistance * 2) + 1) * ((renderDistance * 2) + 1)
+	const int renderDistance = 4;   // ((renderDistance * 2) + 1) * ((renderDistance * 2) + 1)
 
 	std::map<std::pair<int, int>, std::unique_ptr<Terrain>> activeChunks;
 	std::set<std::pair<int, int>> loadingChunks;

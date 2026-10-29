@@ -1,9 +1,28 @@
 #include "World/Terrain.hpp"
 
+#include <random>
+#include <cstdint>
+#include <glm/gtc/constants.hpp>
+
 float Smooth01(float t)
 {
 	t = glm::clamp(t, 0.0f, 1.0f);
 	return t * t * (3.0f - 2.0f * t);
+}
+
+static uint32_t GetGrassSeed(uint32_t seed, int chunkX, int chunkZ)
+{
+	uint32_t h = seed;
+	h ^= static_cast<uint32_t>(chunkX) * 0x9E3779B9u;
+	h ^= static_cast<uint32_t>(chunkZ) * 0x85EBCA6Bu;
+
+	h ^= h >> 16;
+	h *= 0x7FEB352Du;
+	h ^= h >> 15;
+	h *= 0x846CA68Bu;
+	h ^= h >> 16;
+
+	return h;
 }
 
 float GetBlendedBiomeHeight(
@@ -274,32 +293,29 @@ MeshData Terrain::GenerateData(int chunkX, int chunkZ, int seed, float heightMul
 		};
 
 
-	// South Edge (z = 0)
 	for (int x = 0; x < vertsPerRow - 1; ++x)
 	{
 		addSkirtQuad(0 * vertsPerRow + x, 0 * vertsPerRow + (x + 1));
 	}
 
-	// North Edge (z = vertsPerRow - 1)
 	for (int x = 0; x < vertsPerRow - 1; ++x)
 	{
 		int z = vertsPerRow - 1;
 		addSkirtQuad(z * vertsPerRow + (x + 1), z * vertsPerRow + x);
 	}
 
-	// West Edge (x = 0)
 	for (int z = 0; z < vertsPerRow - 1; ++z)
 	{
 		addSkirtQuad((z + 1) * vertsPerRow + 0, z * vertsPerRow + 0);
 	}
 
-	// East Edge (x = vertsPerRow - 1)
 	for (int z = 0; z < vertsPerRow - 1; ++z)
 	{
 		int x = vertsPerRow - 1;
 		addSkirtQuad(z * vertsPerRow + x, (z + 1) * vertsPerRow + x);
 	}
 
+	/*
 	const int samplesPerSide = (mapChunkSize - 1) / meshStep + 1;
 
 	for (int z = 0; z < samplesPerSide - 1; ++z)
@@ -340,6 +356,148 @@ MeshData Terrain::GenerateData(int chunkX, int chunkZ, int seed, float heightMul
 			data.waterIndices.push_back(base + 3);
 		}
 	}
+	*/
+
+	std::mt19937 grassRng(
+		GetGrassSeed(
+			static_cast<uint32_t>(seed),
+			chunkX,
+			chunkZ
+		)
+	);
+
+	std::uniform_real_distribution<float> random01(0.0f, 1.0f);
+	std::uniform_real_distribution<float> randomRotation(
+		0.0f, glm::two_pi<float>());
+	std::uniform_real_distribution<float> randomScale(0.8f, 1.25f);
+
+	constexpr float grassCellSize = 1.5f;
+
+	auto smoothRange = [](float value, float edge0, float edge1)
+		{
+			const float t = glm::clamp(
+				(value - edge0) / (edge1 - edge0),
+				0.0f, 1.0f
+			);
+
+			return t * t * (3.0f - 2.0f * t);
+		};
+
+	auto densityNoise = [](float x, float z)
+		{
+			const float broad =
+				std::sin(x * 0.025f + z * 0.013f) *
+				std::cos(z * 0.021f - x * 0.017f);
+
+			return 0.5f + 0.5f * broad;
+		};
+
+	for (float z = 0.0f; z < mapChunkSize - 1; z += grassCellSize)
+	{
+		for (float x = 0.0f; x < mapChunkSize - 1; x += grassCellSize)
+		{
+			const float sampleX = std::min(
+				x + random01(grassRng) * grassCellSize,
+				static_cast<float>(mapChunkSize - 1));
+
+			const float sampleZ = std::min(
+				z + random01(grassRng) * grassCellSize,
+				static_cast<float>(mapChunkSize - 1));
+
+			const float worldX = worldOffsetX + sampleX;
+			const float worldZ = worldOffsetZ + sampleZ;
+
+			const BiomeData biome = getBiomeData(worldX, worldZ);
+
+			const float continentalness = biome.continentalness;
+			const float temperature = biome.temperature;
+			const float moisture = biome.moisture;
+
+			if (continentalness < 0.30f)
+				continue;
+
+			const float desertFactor =
+				smoothRange(temperature, 0.45f, 0.75f) *
+				(1.0f - smoothRange(moisture, 0.25f, 0.60f));
+
+			const float mountainFactor =
+				smoothRange(continentalness, 0.55f, 0.85f);
+
+			const float snowFactor =
+				smoothRange(temperature, 0.15f, 0.40f) *
+				smoothRange(continentalness, 0.60f, 0.85f);
+
+			const float forestFactor =
+				smoothRange(moisture, 0.35f, 0.70f) *
+				(1.0f - desertFactor);
+
+			const float hillsFactor =
+				smoothRange(continentalness, 0.35f, 0.65f) *
+				(1.0f - mountainFactor);
+
+			const float plainsFactor =
+				1.0f - smoothRange(biome.continentalness, 0.35f, 0.75f);
+
+
+			if (desertFactor > 0.8f ||
+				snowFactor > 0.5f ||
+				mountainFactor > 0.85f)
+			{
+				continue;
+			}
+
+
+			const float left = getTerrainHeight(worldX - 1.0f, worldZ);
+			const float right = getTerrainHeight(worldX + 1.0f, worldZ);
+			const float down = getTerrainHeight(worldX, worldZ - 1.0f);
+			const float up = getTerrainHeight(worldX, worldZ + 1.0f);
+
+			const float slopeX = (right - left) * 0.5f;
+			const float slopeZ = (up - down) * 0.5f;
+
+			const float slope = std::atan(
+				std::sqrt(slopeX * slopeX + slopeZ * slopeZ));
+
+			if (slope > glm::radians(35.0f))
+				continue;
+
+			float grassProbability = 0.95f * plainsFactor;
+
+			grassProbability = glm::max(
+				grassProbability,
+				0.45f * (1.0f - mountainFactor)
+			);
+
+			grassProbability *= 1.0f - desertFactor * 1.5;
+			grassProbability *= 1.0f - snowFactor * 1.5;
+			grassProbability *= 1.0f - mountainFactor * 1.5;
+
+			const float noise = densityNoise(worldX, worldZ);
+			grassProbability *= 0.65f + 0.35f * noise;
+
+			grassProbability = glm::clamp(grassProbability, 0.0f, 1.0f);
+
+			if (random01(grassRng) > grassProbability)
+				continue;
+
+			const float height = getTerrainHeight(worldX, worldZ);
+
+			GrassInstance instance;
+			instance.position = glm::vec3(
+				sampleX - halfSize,
+				height,
+				sampleZ - halfSize
+			);
+
+			instance.rotation = randomRotation(grassRng);
+			instance.scale = randomScale(grassRng);
+			instance.colorVariation = 0.8f + random01(grassRng) * 0.2f;
+
+			data.grassInstances.push_back(instance);
+		}
+	}
+
+
 
 	return data;
 }
@@ -380,7 +538,7 @@ void Terrain::UploadToGPU(const MeshData& data)
 
 	glBindVertexArray(0);
 
-
+	/*
 	if (waterVAO == 0)
 	{
 		glGenVertexArrays(1, &waterVAO);
@@ -415,6 +573,8 @@ void Terrain::UploadToGPU(const MeshData& data)
 	);
 
 	glBindVertexArray(0);
+
+	*/
 }
 
 void Terrain::DrawWater(glm::mat4& model, Shader& shader)

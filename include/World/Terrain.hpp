@@ -7,6 +7,7 @@
 #include "Utility/Noise.hpp"
 #include <Graphics/Mesh.hpp>
 #include "Biomes.hpp"
+#include "Ecosystem/Grass.hpp"
 
 static const float scale = 0.35f;
 static const int octaves = 4;
@@ -22,8 +23,10 @@ struct MeshData
 	//std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 
-	std::vector<glm::vec3> waterVertices;
-	std::vector<unsigned int> waterIndices;
+	//std::vector<glm::vec3> waterVertices;
+	//std::vector<unsigned int> waterIndices;
+
+	std::vector<GrassInstance> grassInstances;
 };
 
 

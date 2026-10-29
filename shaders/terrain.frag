@@ -23,6 +23,9 @@ uniform sampler2D snowTexture;
 uniform float textureScale = 0.05;
 uniform float waterLevel;
 
+uniform float time;
+uniform vec3 cameraPos;
+
 /*
 vec3 GetBiomeColor()
 {
@@ -44,6 +47,67 @@ vec3 GetBiomeColor()
     return vec3(0.38, 0.68, 0.28); // Plains - green
 }
 */
+
+vec3 GetWaterColor(vec3 norm, vec3 viewDir, vec3 lightDir)
+{
+    vec3 deepColor = vec3(0.005, 0.045, 0.12);
+
+    vec3 shallowColor = vec3(0.015, 0.28, 0.38);
+
+    float depth = smoothstep(0.0, 0.30, Continentalness);
+
+    vec3 waterColor = mix(deepColor, shallowColor, depth);
+
+    vec2 waveUV = FragPos.xz * 0.035;
+
+    float wave1 = sin(waveUV.x * 2.0 + time * 0.8)
+                * cos(waveUV.y * 1.5 + time * 0.6);
+
+    float wave2 = sin(waveUV.x * 3.2 - waveUV.y * 2.1
+                    + time * 0.5);
+
+    float waves = (wave1 + wave2) * 0.5;
+
+    vec3 waveNormal = normalize(
+        norm + vec3(
+            cos(waveUV.x * 2.0 + time * 0.8) * 0.035,
+            0.0,
+            sin(waveUV.y * 1.5 + time * 0.6) * 0.035
+        )
+    );
+
+    float diffuse = max(dot(waveNormal, lightDir), 0.0);
+
+    vec3 reflectedLight = reflect(-lightDir, waveNormal);
+    float specular = pow(
+        max(dot(viewDir, reflectedLight), 0.0),
+        96.0
+    );
+
+    float fresnel = 0.02 + 0.98 * pow(
+        1.0 - max(dot(norm, viewDir), 0.0),
+        5.0
+    );
+
+    vec3 skyReflection = vec3(0.30, 0.55, 0.72);
+
+    waterColor = mix(
+        waterColor,
+        skyReflection,
+        fresnel * 0.45
+    );
+
+    waterColor *= 1.0 + waves * 0.08;
+
+    float daylight = smoothstep(0.025, 0.15, sunDir.y);
+
+    vec3 ambient = waterColor * mix(0.08, 0.30, daylight);
+    vec3 direct = waterColor * diffuse * daylight;
+    vec3 sunHighlight = vec3(1.0, 0.92, 0.72)
+                      * specular * daylight * 2.0;
+
+    return ambient + direct + sunHighlight;
+}
 
 float smoothRange(float value, float edge0, float edge1)
 {
@@ -94,7 +158,16 @@ void main()
 
     if (Continentalness < 0.30)
     {
-        terrainColor = desert;
+        vec3 viewDir = normalize(cameraPos - FragPos);
+
+        vec3 waterColor = GetWaterColor(
+            norm,
+            viewDir,
+            lightDir
+        );
+
+        FragColor = vec4(waterColor, 1.0);
+        return;
     }
 
     float daylight = smoothstep(0.025, 0.15, sunDir.y);

@@ -1,6 +1,7 @@
 #include "World/World.hpp"
 #include <cmath>
 #include <glm/ext/matrix_transform.hpp>
+#include <GLFW/glfw3.h>
 
 //World::World() {}
 World::~World() {}
@@ -8,12 +9,14 @@ World::~World() {}
 World::World(int seed, float heightMultiplier, int lod) :
 	seed(seed), heightMultiplier(heightMultiplier),
 	lod(lod), terrainShader("shaders/terrain.vert", "shaders/terrain.frag"),
+	grassShader("shaders/grass.vert", "shaders/grass.frag"),
 	desertTexture("assets/textures/sand_color.jpg", TextureType::Color),
 	plainsTexture("assets/textures/grass_color.jpg", TextureType::Color),
 	mountainsTexture("assets/textures/rock_color.jpg", TextureType::Color),
 	snowTexture("assets/textures/snow_color.jpg", TextureType::Color),
 	hillsTexture("assets/textures/hill_color.jpg", TextureType::Color),
-	forestTexture("assets/textures/forest_color.jpg", TextureType::Color)
+	forestTexture("assets/textures/forest_color.jpg", TextureType::Color),
+	grassTexture("assets/textures/grass.png", TextureType::Color)
 {
 	terrainShader.Use();
 
@@ -27,6 +30,9 @@ World::World(int seed, float heightMultiplier, int lod) :
 	terrainShader.SetFloat("textureScale", 0.05f);
 
 	terrainShader.SetFloat("waterLevel", waterLevel);
+
+	grass.Initialize();
+	grassShader.SetInt("grassTexture", 0);
 }
 
 void World::Update(const glm::vec3& cameraPos)
@@ -50,6 +56,13 @@ void World::Update(const glm::vec3& cameraPos)
 			loadingChunks.erase(key);
 
 			auto terrain = std::make_unique<Terrain>();
+
+			grass.UploadInstances(
+				data.chunkX,
+				data.chunkZ,
+				data.grassInstances
+			);
+
 			terrain->UploadToGPU(data);
 
 			activeChunks[key] = std::move(terrain);
@@ -75,6 +88,8 @@ void World::Update(const glm::vec3& cameraPos)
 
 		if (requiredChunks.find(key) == requiredChunks.end())
 		{
+			grass.RemoveChunk(key.first, key.second);
+
 			activeChunkLODs.erase(key);
 			it = activeChunks.erase(it);
 		}
@@ -128,24 +143,49 @@ void World::Draw(glm::mat4& model, glm::mat4& view, glm::mat4& projection, const
 	terrainShader.SetVec3("sunDir", sunDirection);
 	terrainShader.SetFloat("waterLevel", waterLevel);
 
-	terrainShader.SetFloat("textureScale", 0.025f);
+	terrainShader.SetFloat("textureScale", 0.05f);
 
-	plainsTexture.Bind(0);
+	terrainShader.SetFloat("time", static_cast<float>(glfwGetTime()));
+	terrainShader.SetVec3("cameraPos", cameraPos);
+
 	desertTexture.Bind(1);
 	forestTexture.Bind(2);
 	hillsTexture.Bind(3);
 	mountainsTexture.Bind(4);
 	snowTexture.Bind(5);
 
+	grassShader.Use();
+	grassShader.SetVec3("sunDir", sunDirection);
+	//grassShader.SetVec3("cameraPos", cameraPos);
+
 	for (auto& pair : activeChunks)
 	{
+		plainsTexture.Bind(0);
+
 		int chunkX = pair.first.first;
 		int chunkZ = pair.first.second;
 
 		glm::mat4 chunkModel = glm::translate(model, glm::vec3(chunkX * chunkSize, terrainLevel, chunkZ * chunkSize));
 		pair.second->Draw(chunkModel, terrainShader);
+
+		glDisable(GL_CULL_FACE);
+
+		grassTexture.Bind(0);
+
+		grass.Draw(
+			chunkX,
+			chunkZ,
+			chunkModel,
+			view,
+			projection,
+			grassShader
+		);
+
+		glEnable(GL_CULL_FACE);
 	}
 
+
+	/*
 	water.BeginDraw(view, projection, cameraPos);
 
 	Shader& waterShader = water.GetShader();
@@ -166,6 +206,7 @@ void World::Draw(glm::mat4& model, glm::mat4& view, glm::mat4& projection, const
 
 		terrain->DrawWater(waterModel, waterShader);
 	}
+	*/
 }
 
 int World::CalculateLOD(int chunkX, int chunkZ, int playerX, int playerZ)
